@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  inspiration-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "10001:10001"
+    environment:
+      - PORT=10001
+      - PYTHONUNBUFFERED=1
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10001/.well-known/agent-card.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
