@@ -317,7 +317,12 @@ Trip Information:
 
 
 def _get_initialized_routing_agent_sync() -> Agent:
-    """Synchronously creates and initializes the RoutingAgent."""
+    """Synchronously creates and initializes the RoutingAgent.
+    
+    This function handles both cases:
+    - When no event loop is running: uses asyncio.run() to initialize with remote connections
+    - When an event loop is already running: creates agent without remote connections as fallback
+    """
 
     remote_agent_urls = [
         "http://0.0.0.0:10001",
@@ -331,15 +336,19 @@ def _get_initialized_routing_agent_sync() -> Agent:
         return host_agent.create_agent()
 
     try:
+        # Try to use asyncio.run() - works when no event loop is running
         return asyncio.run(_async_main())
     except RuntimeError as e:
         if "asyncio.run() cannot be called from a running event loop" in str(e):
+            # Event loop is already running (e.g., when ADK imports the module)
+            # We cannot use asyncio.run() or run_until_complete() in this case
+            # Create agent without remote connections - it will still work, just without
+            # the ability to connect to remote agents initially
             print(
-                f"Warning: Event loop already running. Initializing agent without remote connections."
+                "Warning: Event loop already running. Creating agent without remote connections."
             )
-            # # Create an agent without async initialization
-            # instance = TravelHostAgent()
-            # return instance.create_agent()
+            instance = TravelHostAgent()
+            return instance.create_agent()
         else:
             raise
 
